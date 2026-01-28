@@ -49,24 +49,13 @@
     <p class="small" style="margin-top:14px;">
       Tip: Edit your words in Google Sheets, refresh this page.
     </p>
-
-    <div style="margin-top:14px;">
-      <div class="small" style="margin-bottom:6px;"><strong>Debug</strong> (paste this text to me if it still fails)</div>
-      <pre id="debug" class="small" style="white-space:pre-wrap; background:#fff; padding:12px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);"></pre>
     </div>
-  </div>
 
   <script>
     // Your CSV link from Google Sheets
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRnVELwrxU0HDlBdXd3V8W7hmXpakmXffJlFqJOCmvFhrrX_7SlCR_ow8QsrUUFT6_Rz_L_1vLYzREq/pub?gid=0&single=true&output=csv";
 
-    function dlog(msg) {
-      const d = document.getElementById("debug");
-      if (d) d.textContent += msg + "\n";
-    }
 
-    dlog("Script loaded.");
-    dlog("SHEET_CSV_URL: " + SHEET_CSV_URL);
 
 
     let cards = [];
@@ -107,12 +96,10 @@
       let defI  = headers.indexOf("definition");
       let exI   = headers.indexOf("example");
 
-      dlog("Headers: " + JSON.stringify(headers));
-      dlog(`Indices -> word: ${wordI}, definition: ${defI}, example: ${exI}`);
+   
 
       // Fallback if headers don't match:
       if (wordI === -1 || defI === -1) {
-        dlog("⚠️ Header match failed. Falling back to column order A=word, B=definition, C=example.");
         wordI = 0; defI = 1; exI = 2;
       }
 
@@ -158,35 +145,29 @@
     }
 
     async function load() {
-      try {
-        dlog("Starting fetch…");
-        const url = SHEET_CSV_URL + "&_=" + Date.now();
-        dlog("Fetch URL: " + url);
-        const res = await fetch(url, { cache: "no-store" });
-        dlog("HTTP status: " + res.status);
-        if (!res.ok) throw new Error("Fetch failed: " + res.status + " " + res.statusText);
-
-        const text = await res.text();
-        dlog("First 3 lines of CSV:\n" + text.split(/\r?\n/).slice(0,3).join("\n"));
-
-        const rows = parseCSV(text);
-        dlog("Parsed rows (including header): " + rows.length);
-
-        cards = rowsToCards(rows);
-        dlog("Cards after filtering (need word+definition): " + cards.length);
-
-        if (!cards.length) {
-          elWord.textContent = "No cards found.";
-          elHint.textContent = "Check the Debug panel below (headers, rows, and CSV preview).";
-          return;
-        }
-        showCard(index);
-      } catch (err) {
-        elWord.textContent = "Couldn’t load sheet.";
-        elHint.textContent = err?.message || String(err);
-        dlog("\nERROR: " + (err?.stack || err));
-      }
+  try {
+    const url = SHEET_CSV_URL + "&_=" + Date.now();
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error("Fetch failed: " + res.status + " " + res.statusText);
     }
+
+    const text = await res.text();
+    const rows = parseCSV(text);
+    cards = rowsToCards(rows);
+
+    if (!cards.length) {
+      elWord.textContent = "No cards found.";
+      elHint.textContent = "Add words to your Google Sheet.";
+      return;
+    }
+
+    showCard(index);
+  } catch (err) {
+    elWord.textContent = "Couldn’t load sheet.";
+    elHint.textContent = err?.message || String(err);
+  }
+}
 
     document.getElementById("card").addEventListener("click", toggleReveal);
     document.getElementById("nextBtn").addEventListener("click", nextCard);
